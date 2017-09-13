@@ -1,0 +1,12 @@
+{
+  "name": "beacon",
+  "version": "1.0.0",
+  "main": "scan.js",
+  "dependencies": {
+    "bleacon": "^0.5.1",
+    "request": "^2.81.0"
+  },
+  "devDependencies": {},
+  "author": "Blaine Carter",
+  "license": "MIT"
+}
