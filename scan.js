@@ -15,7 +15,7 @@ request.get({
   }
   alerts = body;
   bleacon.startScanning(process.env.BEACON_UUID);
-   /*replace with the UUID, Major, Minor of the beacons you want to track or remove it to track all ble signals*/
+  /*replace with the UUID, Major, Minor of the beacons you want to track or remove it to track all ble signals*/
   console.log('Scanning:', alerts);
 });
 
@@ -43,7 +43,7 @@ bleacon.on('discover', function(bleacon) {
       }
     },
     function(err, res, body) {
-       console.log(body);
+      console.log(body);
     });
 
   //Process the alerts
@@ -65,26 +65,124 @@ bleacon.on('discover', function(bleacon) {
 
     //Process the alert action
     if (alert) {
-        console.log('major:', major,
-          'minor:', minor,
-          'rssi:', rssi,
-          'accuracy:', accuracy,
-          'distance', distance,
-          'proximity:', proximity);
+      console.log('major:', major,
+        'minor:', minor,
+        'rssi:', rssi,
+        'accuracy:', accuracy,
+        'distance', distance,
+        'proximity:', proximity);
 
-    var actions = alerts[i].actions;
-    for (var j = 0; j < actions.length; j++) {
-      if (actions[j].action === "ifttt") {
-        iftttNotify(alerts[i].name, scannerID, beaconId, distance);
-      }
+      var actions = alerts[i].actions;
+      for (var j = 0; j < actions.length; j++) {
+        if (actions[j].action === "ifttt") {
+          iftttNotify(alerts[i].name, scannerID, beaconId, distance);
+        }
 
-      if (actions[j].action === "deadBolt") {
-        deadBolt(actions[j].value);
+        if (actions[j].action === "deadBolt") {
+          deadBolt(actions[j].value);
+        }
+
+        if (actions[j].action === "sonosTts") {
+          sonosTts(actions[j].value);
+        }
       }
-    }
     }
   }
 });
+
+//Send a notification through IFTTT
+//  You will need to have registered for a key and be using the phone app
+//    to receive notifications
+var notificationDates = {};
+var IftttKey = process.env.IFTTT_KEY;
+var iftttNotify = function(name, v1, v2, v3, delay) {
+  console.log('ifttt called');
+
+  //Only fire the event once every 60 seconds unless a different delay is passed in
+  if (typeof(delay) === 'undefined') {
+    delay = 60;
+  }
+
+  if (notificationDates.hasOwnProperty(name) === false || (new Date()) - notificationDates[name] > delay * 1000) {
+    notificationDates[name] = new Date();
+    request.post({
+        url: 'https://maker.ifttt.com/trigger/' + name + '/with/key/' + IftttKey,
+        method: 'POST',
+        json: {
+          "value1": v1,
+          "value2": v2,
+          "value3": v3
+        }
+      },
+      function(err, res, body) {
+        console.log(body);
+      });
+  }
+};
+
+var deadboltUri = process.env.DEADBOLT_URI;
+var deadBolt = function(state, delay) {
+  console.log('deadBolt called with', state);
+
+  //Only fire the event once every 60 seconds unless a different delay is passed in
+  if (typeof(delay) === 'undefined') {
+    delay = 60;
+  }
+
+  if (notificationDates.hasOwnProperty('deadBolt') === false || (new Date()) - notificationDates.deadBolt > delay * 1000) {
+    notificationDates.deadBolt = new Date();
+    request.post({
+        url: deadboltUri + state,
+        method: 'POST',
+        json: {
+          "entity_id": "lock.schlage_be469nxcen_touchscreen_deadbolt_locked"
+        }
+      },
+      function(err, res, body) {
+        console.log(body);
+      });
+  }
+};
+
+var sonosTtsUri = process.env.SONOS_TTS_URI;
+var sonosVolUri = process.env.SONOS_VOL_URI;
+var sonosTts = function(message, delay) {
+  console.log('Sonos called with', message);
+
+  //Only fire the event once every 60 seconds unless a different delay is passed in
+  if (typeof(delay) === 'undefined') {
+    delay = 60;
+  }
+
+  if (notificationDates.hasOwnProperty('sonosTts') === false || (new Date()) - notificationDates.sonosTts > delay * 1000) {
+    notificationDates.sonosTts = new Date();
+    //Set the volume to max
+    request.post({
+        url: sonosVolUri,
+        method: 'POST',
+        json: {
+          "entity_id": "media_player.danielles_sonos",
+          "volume_level": "1"
+        }
+      },
+      function(err, res, body) {
+        console.log(body);
+      });
+
+      //speak the message
+      request.post({
+          url: sonosTtsUri,
+          method: 'POST',
+          json: {
+            "entity_id": "media_player.danielles_sonos",
+            "message": message
+          }
+        },
+        function(err, res, body) {
+          console.log(body);
+        });
+  }
+};
 
 var distanceQueues = {};
 
@@ -127,57 +225,3 @@ function calculateDistance(major, rssi) {
 
   return avg;
 }
-
-//Send a notification through IFTTT
-//  You will need to have registered for a key and be using the phone app
-//    to receive notifications
-var notificationDates = {};
-var IftttKey = process.env.IFTTT_KEY;
-var iftttNotify = function(name, v1, v2, v3, delay) {
-  console.log('ifttt called');
-
-  //Only fire the event once every 60 seconds unless a different delay is passed in
-  if (typeof(delay) === 'undefined'){
-    delay = 60;
-  }
-
-  if (notificationDates.hasOwnProperty(name) === false || (new Date()) - notificationDates[name] > delay * 1000) {
-    notificationDates[name] = new Date();
-    request.post({
-        url: 'https://maker.ifttt.com/trigger/' + name + '/with/key/' + IftttKey,
-        method: 'POST',
-        json: {
-          "value1": v1,
-          "value2": v2,
-          "value3": v3
-        }
-      },
-      function(err, res, body) {
-        console.log(body);
-      });
-  }
-};
-
-var deadboltUri = process.env.DEADBOLT_URI;
-var deadBolt = function(state, delay) {
-  console.log('deadBolt called with', state);
-
-  //Only fire the event once every 60 seconds unless a different delay is passed in
-  if (typeof(delay) === 'undefined'){
-    delay = 60;
-  }
-
-  if (notificationDates.hasOwnProperty('deadBolt') === false || (new Date()) - notificationDates.deadBolt > delay * 1000) {
-    notificationDates.deadBolt = new Date();
-    request.post({
-        url: deadboltUri + state,
-        method: 'POST',
-        json: {
-          "entity_id": "lock.schlage_be469nxcen_touchscreen_deadbolt_locked"
-        }
-      },
-      function(err, res, body) {
-        console.log(body);
-      });
-  }
-};
