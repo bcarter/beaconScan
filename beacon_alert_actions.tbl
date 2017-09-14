@@ -1,0 +1,38 @@
+--------------------------------------------------------
+--  File created - Tuesday-September-12-2017
+--------------------------------------------------------
+WHENEVER SQLERROR EXIT
+--------------------------------------------------------
+--  DDL for Table ALERT_ACTIONS
+--------------------------------------------------------
+
+CREATE TABLE "BEACON"."ALERT_ACTIONS" (
+    "ALERT_ID"    NUMBER,
+    "ACTION_ID"   NUMBER
+);
+  
+--------------------------------------------------------
+--  DDL for Index ALERT_ACTIONS_PK
+--------------------------------------------------------
+
+CREATE UNIQUE INDEX "BEACON"."ALERT_ACTIONS_PK" ON
+    "BEACON"."ALERT_ACTIONS" (
+        "ALERT_ID",
+        "ACTION_ID"
+    );
+  
+--------------------------------------------------------
+--  Constraints for Table ALERT_ACTIONS
+--------------------------------------------------------
+
+ALTER TABLE "BEACON"."ALERT_ACTIONS" ADD CONSTRAINT "ALERT_ACTIONS_PK" PRIMARY KEY ( "ALERT_ID","ACTION_ID" )
+    USING INDEX ALERT_ACTIONS_PK
+ENABLE VALIDATE;
+
+ALTER TABLE alert_actions ADD CONSTRAINT alert_actions_fk1 FOREIGN KEY ( action_id )
+    REFERENCES actions ( id )
+ENABLE VALIDATE;
+
+ALTER TABLE alert_actions ADD CONSTRAINT alert_actions_fk2 FOREIGN KEY ( alert_id )
+    REFERENCES alerts ( id )
+ENABLE VALIDATE;

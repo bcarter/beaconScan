@@ -9,10 +9,14 @@
 
 WHENEVER SQLERROR EXIT
 
---CONNECT sys/dd
-
 @@create_schema.sql
 
 CONNECT beacon/dd
-@@create_populate_tables.sql
+@@beacon_actions.tbl
+@@beacon_alerts.tbl
+@@beacon_alert_actions.tbl
+@@beacon_readings.tbl
+
+@@load_data.sql
+
 @@create_rest_api.sql
